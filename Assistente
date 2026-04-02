@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PlanIA — Assistente de Configuração</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F9F8F5;--bg2:#F3F2EE;--ink:#0E0E0C;--ink2:#1C1C19;
+  --muted:#6B6B63;--subtle:#9A9A90;--line:#E2E0D8;--line2:#D0CEC5;
+  --amber:#C17F3A;--amber2:#E09A4E;--abg:#FDF6EC;--abd:#F0D9B5;
+  --green:#1A7A4A;--gbg:#EBF7F1;--gbd:#A8DFBF;
+  --blue:#2563EB;--bbg:#EFF4FF;--bbd:#BFDBFE;
+  --red:#C0392B;--rbg:#FEF0EE;--rbd:#F5C6C2;
+  --F:'Inter',sans-serif;--M:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth;font-size:15px}
+body{font-family:var(--F);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;line-height:1.6}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+
+/* Layout */
+.page{max-width:820px;margin:0 auto;padding:32px 20px 80px}
+
+/* Header */
+.hdr{text-align:center;padding:48px 0 40px}
+.hdr-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:20px}
+.logo-mark{width:44px;height:44px;border-radius:12px;background:var(--ink);display:flex;align-items:center;justify-content:center}
+.logo-icon{width:22px;height:22px;background:var(--amber);clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)}
+.logo-name{font-size:22px;font-weight:800;letter-spacing:-.04em}
+.logo-name em{color:var(--amber);font-style:normal}
+.hdr-title{font-size:32px;font-weight:800;letter-spacing:-.04em;margin-bottom:10px}
+.hdr-sub{font-size:16px;color:var(--muted);max-width:500px;margin:0 auto;line-height:1.6}
+
+/* Progress */
+.progress{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:40px}
+.step-dot{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .25s;flex-shrink:0;position:relative;z-index:1;
+}
+.step-dot.done{background:var(--green);color:#fff;border:2px solid var(--green)}
+.step-dot.active{background:var(--ink);color:#fff;border:2px solid var(--ink);box-shadow:0 0 0 4px rgba(14,14,12,.12)}
+.step-dot.idle{background:var(--bg);color:var(--muted);border:2px solid var(--line2)}
+.step-line{flex:1;height:2px;background:var(--line);max-width:60px}
+.step-line.done{background:var(--green)}
+
+/* Cards */
+.section{
+  background:#fff;border:1px solid var(--line);
+  border-radius:20px;margin-bottom:16px;
+  overflow:hidden;transition:box-shadow .2s;
+}
+.section.active{box-shadow:0 4px 24px rgba(14,14,12,.08);border-color:var(--line2)}
+.section.done-card{border-color:var(--gbd);background:linear-gradient(135deg,var(--gbg),#fff)}
+.sec-head{
+  padding:20px 24px;display:flex;align-items:center;gap:14px;
+  cursor:pointer;user-select:none;
+}
+.sec-num{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;flex-shrink:0;
+}
+.sec-num.active{background:var(--ink);color:#fff}
+.sec-num.done{background:var(--green);color:#fff}
+.sec-num.idle{background:var(--bg2);color:var(--muted);border:1px solid var(--line)}
+.sec-info{flex:1}
+.sec-title{font-size:15px;font-weight:700;letter-spacing:-.03em}
+.sec-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.sec-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px}
+.st-ok{background:var(--gbg);color:var(--green);border:1px solid var(--gbd)}
+.st-pend{background:var(--bg2);color:var(--muted);border:1px solid var(--line)}
+.st-req{background:var(--rbg);color:var(--red);border:1px solid var(--rbd)}
+
+.sec-body{padding:0 24px 24px;display:none}
+.sec-body.open{display:block}
+
+/* Fields */
+.field{margin-bottom:16px}
+.field-label{
+  font-size:11px;font-weight:700;color:var(--muted);
+  letter-spacing:.06em;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;margin-bottom:6px;
+}
+.field-label span{color:var(--red);font-size:13px}
+.field-hint{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5}
+.field-input{
+  width:100%;background:var(--bg2);border:1.5px solid var(--line2);
+  border-radius:10px;padding:12px 14px;
+  font-size:13px;color:var(--ink);outline:none;
+  transition:border-color .2s,background .2s;
+  font-family:var(--M);
+}
+.field-input:focus{border-color:var(--amber);background:#fff}
+.field-input::placeholder{color:var(--subtle);font-family:var(--F)}
+.field-input.ok{border-color:var(--gbd);background:var(--gbg)}
+.field-input.err-field{border-color:var(--rbd);background:var(--rbg)}
+
+/* How-to box */
+.howto{
+  background:var(--bbg);border:1px solid var(--bbd);
+  border-radius:12px;padding:16px;margin-bottom:16px;
+}
+.howto-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.howto ol{padding-left:18px}
+.howto li{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:2px}
+.howto li strong{color:var(--ink2);font-weight:600}
+.howto a{color:var(--amber);font-weight:600}
+.howto code{font-family:var(--M);background:rgba(37,99,235,.08);padding:1px 5px;border-radius:4px;font-size:11px}
+
+/* Warn box */
+.warnbox{
+  background:var(--abg);border:1px solid var(--abd);
+  border-radius:10px;padding:12px 14px;margin-bottom:14px;
+  font-size:12px;color:var(--muted);display:flex;gap:8px;
+}
+.warnbox-ico{flex-shrink:0;font-size:15px}
+
+/* SQL block */
+.sql-block{
+  background:var(--ink);border-radius:10px;
+  padding:16px;margin-bottom:14px;overflow-x:auto;
+}
+.sql-block pre{font-family:var(--M);font-size:11px;color:#A8FF78;line-height:1.7;white-space:pre}
+.sql-copy{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;color:#fff;
+  cursor:pointer;transition:background .15s;margin-bottom:8px;display:inline-block;
+}
+.sql-copy:hover{background:rgba(255,255,255,.18)}
+
+/* Buttons */
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.btn{
+  padding:11px 22px;border-radius:10px;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .2s;display:inline-flex;align-items:center;gap:7px;
+}
+.btn-primary{background:var(--ink);color:#fff;box-shadow:0 2px 8px rgba(14,14,12,.2)}
+.btn-primary:hover{background:var(--ink2);transform:translateY(-1px)}
+.btn-amber{background:var(--amber);color:#fff;box-shadow:0 2px 8px rgba(193,127,58,.3)}
+.btn-amber:hover{background:var(--amber2);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1px solid var(--line2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--line);color:var(--ink)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{filter:brightness(1.1)}
+.btn-big{padding:16px 36px;font-size:15px;border-radius:14px;width:100%;justify-content:center}
+
+/* Test result */
+.test-result{
+  border-radius:10px;padding:12px 14px;margin-top:12px;
+  font-size:12px;line-height:1.6;display:none;
+}
+.test-ok{background:var(--gbg);border:1px solid var(--gbd);color:var(--green)}
+.test-err{background:var(--rbg);border:1px solid var(--rbd);color:var(--red)}
+.test-result.show{display:block}
+
+/* Final section */
+.final-box{
+  background:var(--ink);border-radius:20px;
+  padding:40px;text-align:center;margin-top:20px;
+}
+.final-title{font-size:26px;font-weight:800;letter-spacing:-.04em;color:#fff;margin-bottom:10px}
+.final-sub{font-size:14px;color:rgba(255,255,255,.55);margin-bottom:28px;line-height:1.6;max-width:460px;margin-left:auto;margin-right:auto}
+.final-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-final-dl{background:var(--amber);color:#fff;padding:14px 28px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-final-dl:hover{background:var(--amber2);transform:translateY(-1px)}
+.btn-final-adm{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);padding:14px 28px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-final-adm:hover{background:rgba(255,255,255,.2)}
+
+/* File tabs */
+.file-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.ftab{
+  padding:7px 14px;border-radius:8px;border:1px solid var(--line2);
+  background:var(--bg2);font-size:12px;font-weight:600;color:var(--muted);
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;
+}
+.ftab:hover{border-color:var(--line);color:var(--ink)}
+.ftab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ftab-icon{font-size:14px}
+
+/* Deploy steps */
+.deploy-steps{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.ds{display:flex;gap:12px;padding:12px 14px;background:var(--bg2);border-radius:10px;border:1px solid var(--line)}
+.ds-n{width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px}
+.ds-body{flex:1}
+.ds-title{font-size:13px;font-weight:700;margin-bottom:3px}
+.ds-desc{font-size:12px;color:var(--muted);line-height:1.55}
+.ds-link{color:var(--amber);font-weight:600;text-decoration:none}
+.ds-link:hover{text-decoration:underline}
+
+/* Tag */
+.tag{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700}
+.tag-green{background:var(--gbg);color:var(--green);border:1px solid var(--gbd)}
+.tag-amber{background:var(--abg);color:var(--amber);border:1px solid var(--abd)}
+.tag-blue{background:var(--bbg);color:var(--blue);border:1px solid var(--bbd)}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:#fff;border-radius:12px;
+  padding:12px 20px;font-size:13px;font-weight:600;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  display:none;z-index:999;white-space:nowrap;
+  animation:toastIn .25s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Spinner */
+.spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Divider */
+.divider{height:1px;background:var(--line);margin:16px 0}
+
+@media(max-width:600px){
+  .hdr{padding:32px 0 28px}
+  .hdr-title{font-size:24px}
+  .sec-head{padding:16px 18px}
+  .sec-body{padding:0 18px 18px}
+  .final-box{padding:28px 20px}
+}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-logo">
+      <div class="logo-mark"><div class="logo-icon"></div></div>
+      <span class="logo-name">Plan<em>IA</em></span>
+    </div>
+    <h1 class="hdr-title">Assistente de Configuração</h1>
+    <p class="hdr-sub">Preencha as informações abaixo e eu gero os arquivos prontos pra subir no servidor. Leva menos de 10 minutos!</p>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress" id="progress">
+    <div class="step-dot active" id="pd-1" onclick="goSection(1)">1</div>
+    <div class="step-line" id="pl-1"></div>
+    <div class="step-dot idle" id="pd-2" onclick="goSection(2)">2</div>
+    <div class="step-line" id="pl-2"></div>
+    <div class="step-dot idle" id="pd-3" onclick="goSection(3)">3</div>
+    <div class="step-line" id="pl-3"></div>
+    <div class="step-dot idle" id="pd-4" onclick="goSection(4)">4</div>
+    <div class="step-line" id="pl-4"></div>
+    <div class="step-dot idle" id="pd-5" onclick="goSection(5)">5</div>
+    <div class="step-line" id="pl-5"></div>
+    <div class="step-dot idle" id="pd-6" onclick="goSection(6)">🚀</div>
+  </div>
+
+  <!-- ── STEP 1: SUPABASE ── -->
+  <div class="section active" id="sec-1">
+    <div class="sec-head" onclick="toggleSec(1)">
+      <div class="sec-num active" id="sn-1">1</div>
+      <div class="sec-info">
+        <div class="sec-title">🗄️ Supabase — Banco de dados</div>
+        <div class="sec-desc">URL do projeto e chave pública</div>
+      </div>
+      <span class="sec-status st-req" id="ss-1">Obrigatório</span>
+    </div>
+    <div class="sec-body open" id="sb-1">
+
+      <div class="howto">
+        <div class="howto-title">📋 Como pegar as chaves do Supabase</div>
+        <ol>
+          <li>Acesse <a href="https://supabase.com" target="_blank"><strong>supabase.com</strong></a> e entre na sua conta</li>
+          <li>Clique no seu projeto <strong>plania</strong></li>
+          <li>No menu lateral clique em <strong>Settings → API</strong></li>
+          <li>Copie o <strong>Project URL</strong> (começa com <code>https://</code>)</li>
+          <li>Copie a chave <strong>anon public</strong> (começa com <code>eyJ...</code>)</li>
+        </ol>
+      </div>
+
+      <div class="warnbox">
+        <span class="warnbox-ico">⚠️</span>
+        <span>Se ainda não criou o projeto no Supabase, <a href="https://supabase.com" target="_blank" style="color:var(--amber);font-weight:600">clique aqui</a> para criar. É gratuito. Após criar, rode o SQL do SETUP.md nas tabelas.</span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Project URL <span>*</span></div>
+        <div class="field-hint">Formato: <code>https://xxxxxxxxxxxxx.supabase.co</code></div>
+        <input class="field-input" id="f-sburl" type="url" placeholder="https://seuprojetoxyz.supabase.co" oninput="validateField(this,'sburl')"/>
+        <div class="test-result" id="tr-sburl"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Chave anon public <span>*</span></div>
+        <div class="field-hint">Começa com <code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></div>
+        <input class="field-input" id="f-sbanon" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." oninput="validateField(this,'sbanon')"/>
+      </div>
+
+      <div class="field">
+        <div class="field-label">E-mail do administrador <span>*</span></div>
+        <div class="field-hint">Seu e-mail que usou pra se cadastrar no Supabase — será o login do painel admin.</div>
+        <input class="field-input" id="f-admin" type="email" placeholder="seuemail@gmail.com" oninput="validateField(this,'admin')"/>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="testSupabase()">
+          <span>🔌</span> Testar conexão
+        </button>
+        <button class="btn btn-amber" onclick="nextSec(1)">
+          Próximo →
+        </button>
+      </div>
+      <div class="test-result" id="tr-sb"></div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: ANTHROPIC ── -->
+  <div class="section" id="sec-2">
+    <div class="sec-head" onclick="toggleSec(2)">
+      <div class="sec-num idle" id="sn-2">2</div>
+      <div class="sec-info">
+        <div class="sec-title">🤖 Anthropic — Inteligência Artificial</div>
+        <div class="sec-desc">Chave da API que gera os planos de estudo</div>
+      </div>
+      <span class="sec-status st-req" id="ss-2">Obrigatório</span>
+    </div>
+    <div class="sec-body" id="sb-2">
+
+      <div class="howto">
+        <div class="howto-title">📋 Como criar a API Key</div>
+        <ol>
+          <li>Acesse <a href="https://console.anthropic.com" target="_blank"><strong>console.anthropic.com</strong></a></li>
+          <li>Faça login ou crie sua conta</li>
+          <li>Vá em <strong>API Keys → Create Key</strong></li>
+          <li>Dê um nome (ex: <code>plania-producao</code>) e clique em <strong>Create</strong></li>
+          <li>Copie a chave agora — ela começa com <code>sk-ant-</code> e <strong>não aparece de novo</strong></li>
+          <li>Adicione crédito em <strong>Billing → Add credits</strong> (mínimo $5 USD)</li>
+        </ol>
+      </div>
+
+      <div class="warnbox">
+        <span class="warnbox-ico">🔒</span>
+        <span>Nunca compartilhe esta chave. O custo é ~R$0,01 por plano gerado. Com $5 USD você gera mais de 5.000 planos.</span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">API Key da Anthropic <span>*</span></div>
+        <div class="field-hint">Começa com <code>sk-ant-api03-</code> ou <code>sk-ant-</code></div>
+        <input class="field-input" id="f-apikey" type="text" placeholder="sk-ant-api03-XXXXXXXXXXXXXXXX" oninput="validateField(this,'apikey')"/>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="testAnthropicKey()">
+          <span>🧪</span> Verificar formato
+        </button>
+        <button class="btn btn-amber" onclick="nextSec(2)">Próximo →</button>
+      </div>
+      <div class="test-result" id="tr-api"></div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: CAKTO ── -->
+  <div class="section" id="sec-3">
+    <div class="sec-head" onclick="toggleSec(3)">
+      <div class="sec-num idle" id="sn-3">3</div>
+      <div class="sec-info">
+        <div class="sec-title">💳 Cakto — Pagamentos</div>
+        <div class="sec-desc">Link de checkout do produto R$21,90/mês</div>
+      </div>
+      <span class="sec-status st-pend" id="ss-3">Opcional</span>
+    </div>
+    <div class="sec-body" id="sb-3">
+
+      <div class="howto">
+        <div class="howto-title">📋 Como pegar o link do Cakto</div>
+        <ol>
+          <li>Acesse <a href="https://cakto.com.br" target="_blank"><strong>cakto.com.br</strong></a> e entre na sua conta</li>
+          <li>Vá em <strong>Meus Produtos</strong> e clique no PlanIA Premium</li>
+          <li>Clique em <strong>Checkout</strong> ou <strong>Compartilhar</strong></li>
+          <li>Copie o link (formato: <code>pay.cakto.com.br/XXXXXXXX</code>)</li>
+        </ol>
+      </div>
+
+      <div class="warnbox">
+        <span class="warnbox-ico">💡</span>
+        <span>Se ainda não criou no Cakto, deixe em branco por enquanto. O botão de assinar vai redirecionar pro seu WhatsApp automaticamente.</span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Link de checkout Cakto</div>
+        <div class="field-hint">Formato: <code>https://pay.cakto.com.br/XXXXXXXX</code></div>
+        <input class="field-input" id="f-cakto" type="url" placeholder="https://pay.cakto.com.br/seu-link"/>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="nextSec(3)">Pular por agora</button>
+        <button class="btn btn-amber" onclick="nextSec(3)">Próximo →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: WHATSAPP ── -->
+  <div class="section" id="sec-4">
+    <div class="sec-head" onclick="toggleSec(4)">
+      <div class="sec-num idle" id="sn-4">4</div>
+      <div class="sec-info">
+        <div class="sec-title">📱 WhatsApp — Suporte e vendas</div>
+        <div class="sec-desc">Seu número para receber mensagens de alunos</div>
+      </div>
+      <span class="sec-status st-req" id="ss-4">Obrigatório</span>
+    </div>
+    <div class="sec-body" id="sb-4">
+
+      <div class="field">
+        <div class="field-label">Número do WhatsApp <span>*</span></div>
+        <div class="field-hint">Com DDI (55) + DDD + número. Sem espaços, traços ou parênteses. Exemplo: <code>5553999887766</code></div>
+        <input class="field-input" id="f-wa" type="tel" placeholder="5553999887766" oninput="validateField(this,'wa')" maxlength="13"/>
+        <div class="test-result" id="tr-wa"></div>
+      </div>
+
+      <div class="warnbox">
+        <span class="warnbox-ico">📲</span>
+        <span>Este número aparece nos botões de suporte do site e no botão de WhatsApp flutuante. Use um número que você responde com frequência.</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-amber" onclick="nextSec(4)">Próximo →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: SENHA ADMIN ── -->
+  <div class="section" id="sec-5">
+    <div class="sec-head" onclick="toggleSec(5)">
+      <div class="sec-num idle" id="sn-5">5</div>
+      <div class="sec-info">
+        <div class="sec-title">🔐 Senha do painel admin</div>
+        <div class="sec-desc">Senha de acesso ao painel administrativo</div>
+      </div>
+      <span class="sec-status st-req" id="ss-5">Obrigatório</span>
+    </div>
+    <div class="sec-body" id="sb-5">
+
+      <div class="warnbox">
+        <span class="warnbox-ico">🔒</span>
+        <span>Esta é a senha do painel admin em <strong>plania-admin.html</strong>. Use uma senha forte — pelo menos 8 caracteres com letras e números. <strong>NÃO use a mesma senha em tudo!</strong></span>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Senha do admin <span>*</span></div>
+        <div class="field-hint">Mínimo 8 caracteres. Use letras maiúsculas, minúsculas e números.</div>
+        <input class="field-input" id="f-pass1" type="password" placeholder="Mínimo 8 caracteres" oninput="validateField(this,'pass1')"/>
+      </div>
+      <div class="field">
+        <div class="field-label">Confirmar senha <span>*</span></div>
+        <input class="field-input" id="f-pass2" type="password" placeholder="Repita a senha" oninput="validateField(this,'pass2')"/>
+        <div class="test-result" id="tr-pass"></div>
+      </div>
+
+      <div class="warnbox">
+        <span class="warnbox-ico">📝</span>
+        <span>Após gerar os arquivos, você precisará <strong>criar a sua conta no Supabase</strong> usando o seu e-mail admin e esta senha. Veja as instruções no último passo.</span>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-amber" onclick="nextSec(5)">Próximo →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 6: GERAR ── -->
+  <div class="section" id="sec-6">
+    <div class="sec-head" onclick="toggleSec(6)">
+      <div class="sec-num idle" id="sn-6">🚀</div>
+      <div class="sec-info">
+        <div class="sec-title">📦 Gerar e fazer deploy</div>
+        <div class="sec-desc">Baixe os arquivos configurados e suba no GitHub</div>
+      </div>
+      <span class="sec-status st-pend" id="ss-6">Último passo</span>
+    </div>
+    <div class="sec-body" id="sb-6">
+
+      <!-- Summary -->
+      <div style="background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Resumo da configuração</div>
+        <div id="summary" style="display:flex;flex-direction:column;gap:7px"></div>
+      </div>
+
+      <!-- SQL block -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          🗄️ SQL para rodar no Supabase
+          <span class="tag tag-amber">Obrigatório antes do deploy</span>
+        </div>
+        <div class="sql-block">
+          <button class="sql-copy" onclick="copySQL()">📋 Copiar SQL</button>
+          <pre id="sql-code">-- Cole no SQL Editor do Supabase → Run
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  subscription_status TEXT DEFAULT 'trial',
+  trial_started_at TIMESTAMPTZ DEFAULT NOW(),
+  subscription_expires_at TIMESTAMPTZ,
+  plans_generated INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS plans (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  answers JSONB,
+  plan_content TEXT,
+  exam_type TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "own_profile" ON profiles FOR ALL USING (auth.uid() = id);
+CREATE POLICY "own_plans"   ON plans   FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "ins_profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "ins_plan"    ON plans    FOR INSERT WITH CHECK (auth.uid() = user_id);</pre>
+        </div>
+      </div>
+
+      <!-- File download buttons -->
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px">📁 Baixar arquivos configurados</div>
+      <div class="file-tabs">
+        <button class="ftab active" id="ft-main" onclick="selectFile('main')"><span class="ftab-icon">🌐</span>plania.html</button>
+        <button class="ftab" id="ft-admin" onclick="selectFile('admin')"><span class="ftab-icon">🔐</span>plania-admin.html</button>
+      </div>
+
+      <div id="gen-area" style="background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;min-height:80px;display:flex;align-items:center;justify-content:center">
+        <div style="text-align:center;color:var(--muted)">
+          <div style="font-size:24px;margin-bottom:6px">⚙️</div>
+          <div style="font-size:12px">Clique em "Gerar arquivos" para configurar e baixar</div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-primary" id="btn-gen" onclick="generateFiles()" style="flex:1;justify-content:center">
+          ⚙️ Gerar arquivos configurados
+        </button>
+        <button class="btn btn-green" id="btn-dl-main" onclick="downloadMain()" style="display:none">
+          ↓ plania.html
+        </button>
+        <button class="btn btn-green" id="btn-dl-admin" onclick="downloadAdmin()" style="display:none">
+          ↓ plania-admin.html
+        </button>
+      </div>
+
+      <!-- Deploy steps -->
+      <div class="divider"></div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px">🚀 Passos para colocar no ar</div>
+      <div class="deploy-steps">
+        <div class="ds"><div class="ds-n">1</div><div class="ds-body"><div class="ds-title">Rodar o SQL no Supabase</div><div class="ds-desc">Acesse <a href="https://supabase.com" target="_blank" class="ds-link">supabase.com</a> → seu projeto → SQL Editor → cole o SQL acima → Run.</div></div></div>
+        <div class="ds"><div class="ds-n">2</div><div class="ds-body"><div class="ds-title">Criar sua conta de admin no Supabase</div><div class="ds-desc">Authentication → Users → Add user → coloque seu e-mail admin e a senha que você criou aqui. Este será o login do painel admin.</div></div></div>
+        <div class="ds"><div class="ds-n">3</div><div class="ds-body"><div class="ds-title">Criar repositório no GitHub</div><div class="ds-desc">Acesse <a href="https://github.com" target="_blank" class="ds-link">github.com</a> → New repository → Nome: plania → Public → Create. Depois faça upload dos 2 arquivos baixados.</div></div></div>
+        <div class="ds"><div class="ds-n">4</div><div class="ds-body"><div class="ds-title">Deploy no Vercel</div><div class="ds-desc">Acesse <a href="https://vercel.com" target="_blank" class="ds-link">vercel.com</a> → Continue with GitHub → New Project → importe o repositório plania → Deploy. Pronto!</div></div></div>
+        <div class="ds"><div class="ds-n">5</div><div class="ds-body"><div class="ds-title">Atualizar URL no Supabase</div><div class="ds-desc">Após o deploy, copie a URL (ex: plania.vercel.app) e vá em Supabase → Authentication → URL Configuration → Site URL → cole a URL.</div></div></div>
+        <div class="ds"><div class="ds-n">6</div><div class="ds-body"><div class="ds-title">Testar tudo!</div><div class="ds-desc">Abra o site, crie um plano grátis, registre uma conta, veja no Supabase → Table Editor → profiles se apareceu. Depois acesse plania.vercel.app/plania-admin.html para o painel admin.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+/* ── STATE ── */
+const state = {
+  sburl:'', sbanon:'', admin:'', apikey:'',
+  cakto:'', wa:'', pass:'',
+  mainGenerated: false, adminGenerated: false,
+  mainContent: '', adminContent: '',
+};
+
+/* ── SECTION TOGGLE ── */
+function toggleSec(n) {
+  const body = document.getElementById('sb-'+n);
+  body.classList.toggle('open');
+}
+function openSec(n) { document.getElementById('sb-'+n).classList.add('open') }
+function closeSec(n) { document.getElementById('sb-'+n).classList.remove('open') }
+
+function goSection(n) {
+  // Close all
+  [1,2,3,4,5,6].forEach(i => closeSec(i));
+  openSec(n);
+  document.getElementById('sec-'+n).scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function nextSec(current) {
+  if (!validateSection(current)) return;
+  markDone(current);
+  if (current < 6) {
+    closeSec(current);
+    openSec(current+1);
+    document.getElementById('sec-'+(current+1)).scrollIntoView({behavior:'smooth',block:'start'});
+    activateDot(current+1);
+    setActiveSection(current+1);
+  }
+  if (current === 5) {
+    updateSummary();
+  }
+}
+
+function setActiveSection(n) {
+  [1,2,3,4,5,6].forEach(i => {
+    const s = document.getElementById('sec-'+i);
+    if (s) s.classList.remove('active');
+  });
+  const el = document.getElementById('sec-'+n);
+  if (el) el.classList.add('active');
+}
+
+function markDone(n) {
+  const num = document.getElementById('sn-'+n);
+  if (num) { num.className='sec-num done'; num.textContent = n === 6 ? '✓' : '✓' }
+  const sec = document.getElementById('sec-'+n);
+  if (sec) sec.classList.add('done-card');
+  const ss = document.getElementById('ss-'+n);
+  if (ss) { ss.className='sec-status st-ok'; ss.textContent='✓ Configurado' }
+  activateDot(n, true);
+  if (n < 6) activateLineDone(n);
+}
+
+function activateDot(n, done=false) {
+  [1,2,3,4,5,6].forEach(i => {
+    const d = document.getElementById('pd-'+i);
+    if (!d) return;
+    if (i < n || done && i === n) d.className='step-dot done';
+    else if (i === n && !done) d.className='step-dot active';
+    else if (!d.classList.contains('done')) d.className='step-dot idle';
+  });
+}
+
+function activateLineDone(n) {
+  const l = document.getElementById('pl-'+n);
+  if (l) l.classList.add('done');
+}
+
+/* ── VALIDATE SECTION ── */
+function validateSection(n) {
+  if (n === 1) {
+    const url   = document.getElementById('f-sburl').value.trim();
+    const anon  = document.getElementById('f-sbanon').value.trim();
+    const admin = document.getElementById('f-admin').value.trim();
+    if (!url || !url.startsWith('https://')) { showToast('⚠️ URL do Supabase inválida'); return false }
+    if (!anon || !anon.startsWith('eyJ'))    { showToast('⚠️ Chave anon inválida'); return false }
+    if (!admin || !admin.includes('@'))      { showToast('⚠️ E-mail do admin inválido'); return false }
+    state.sburl = url; state.sbanon = anon; state.admin = admin;
+    return true;
+  }
+  if (n === 2) {
+    const key = document.getElementById('f-apikey').value.trim();
+    if (!key || !key.startsWith('sk-ant')) { showToast('⚠️ Chave Anthropic inválida'); return false }
+    state.apikey = key;
+    return true;
+  }
+  if (n === 3) {
+    const cakto = document.getElementById('f-cakto').value.trim();
+    state.cakto = cakto || 'https://pay.cakto.com.br/SEU-LINK';
+    return true;
+  }
+  if (n === 4) {
+    const wa = document.getElementById('f-wa').value.trim().replace(/\D/g,'');
+    if (!wa || wa.length < 12) { showToast('⚠️ Número de WhatsApp inválido. Formato: 5553999887766'); return false }
+    state.wa = wa;
+    return true;
+  }
+  if (n === 5) {
+    const p1 = document.getElementById('f-pass1').value;
+    const p2 = document.getElementById('f-pass2').value;
+    if (!p1 || p1.length < 8) { showToast('⚠️ Senha deve ter pelo menos 8 caracteres'); return false }
+    if (p1 !== p2) { showToast('⚠️ Senhas não conferem'); return false }
+    state.pass = p1;
+    return true;
+  }
+  return true;
+}
+
+/* ── FIELD VALIDATION ── */
+function validateField(el, type) {
+  const v = el.value.trim();
+  el.classList.remove('ok','err-field');
+  const tr = document.getElementById('tr-'+type);
+
+  if (type === 'sburl') {
+    if (v && v.startsWith('https://') && v.includes('supabase.co')) {
+      el.classList.add('ok');
+    } else if (v) { el.classList.add('err-field') }
+  }
+  if (type === 'sbanon') {
+    if (v && v.startsWith('eyJ') && v.length > 100) el.classList.add('ok');
+    else if (v) el.classList.add('err-field');
+  }
+  if (type === 'admin') {
+    if (v && v.includes('@') && v.includes('.')) el.classList.add('ok');
+    else if (v) el.classList.add('err-field');
+  }
+  if (type === 'apikey') {
+    if (v && v.startsWith('sk-ant')) el.classList.add('ok');
+    else if (v) el.classList.add('err-field');
+  }
+  if (type === 'wa') {
+    const digits = v.replace(/\D/g,'');
+    if (digits.length >= 12 && digits.startsWith('55')) {
+      el.classList.add('ok');
+      if (tr) { tr.className='test-result test-ok show'; tr.textContent='✓ Número válido: +'+digits }
+    } else if (digits.length > 5) {
+      el.classList.add('err-field');
+      if (tr) { tr.className='test-result test-err show'; tr.textContent='Formato: 55 + DDD + número (ex: 5553999887766)' }
+    } else { if (tr) tr.classList.remove('show') }
+  }
+  if (type === 'pass1') {
+    if (v.length >= 8) el.classList.add('ok');
+    else if (v) el.classList.add('err-field');
+  }
+  if (type === 'pass2') {
+    const p1 = document.getElementById('f-pass1').value;
+    const tr2 = document.getElementById('tr-pass');
+    if (v && v === p1) {
+      el.classList.add('ok');
+      if (tr2) { tr2.className='test-result test-ok show'; tr2.textContent='✓ Senhas conferem!' }
+    } else if (v) {
+      el.classList.add('err-field');
+      if (tr2) { tr2.className='test-result test-err show'; tr2.textContent='Senhas não conferem.' }
+    } else { if (tr2) tr2.classList.remove('show') }
+  }
+}
+
+/* ── TEST SUPABASE ── */
+async function testSupabase() {
+  const url   = document.getElementById('f-sburl').value.trim();
+  const anon  = document.getElementById('f-sbanon').value.trim();
+  const tr    = document.getElementById('tr-sb');
+  if (!url || !anon) { tr.className='test-result test-err show'; tr.textContent='Preencha URL e chave antes de testar.'; return }
+  tr.className='test-result test-ok show'; tr.innerHTML='<span class="spinner"></span> Testando conexão…';
+  try {
+    const res = await fetch(url+'/rest/v1/', { headers:{'apikey':anon,'Authorization':'Bearer '+anon} });
+    if (res.ok || res.status === 200) {
+      tr.className='test-result test-ok show'; tr.textContent='✅ Conexão com Supabase bem-sucedida! Chaves válidas.';
+    } else {
+      tr.className='test-result test-err show'; tr.textContent='❌ Erro '+res.status+': Verifique a URL e a chave anon.';
+    }
+  } catch(e) {
+    tr.className='test-result test-ok show'; tr.textContent='⚠️ Não foi possível testar pelo navegador (bloqueio CORS). Continue mesmo assim — as chaves serão validadas ao abrir o site.';
+  }
+}
+
+/* ── TEST ANTHROPIC ── */
+function testAnthropicKey() {
+  const key = document.getElementById('f-apikey').value.trim();
+  const tr  = document.getElementById('tr-api');
+  if (!key) { tr.className='test-result test-err show'; tr.textContent='Preencha a chave antes de verificar.'; return }
+  if (key.startsWith('sk-ant')) {
+    tr.className='test-result test-ok show'; tr.textContent='✅ Formato correto! Chave começa com sk-ant — parece válida.';
+  } else {
+    tr.className='test-result test-err show'; tr.textContent='❌ Formato inválido. A chave deve começar com sk-ant-';
+  }
+}
+
+/* ── SUMMARY ── */
+function updateSummary() {
+  const items = [
+    { icon:'🗄️', label:'Supabase URL', val: state.sburl.split('.')[0].replace('https://','')+'…', ok:!!state.sburl },
+    { icon:'🔑', label:'Chave anon', val: state.sbanon.slice(0,20)+'…', ok:!!state.sbanon },
+    { icon:'👤', label:'Admin', val: state.admin, ok:!!state.admin },
+    { icon:'🤖', label:'Anthropic API', val: state.apikey.slice(0,15)+'…', ok:!!state.apikey },
+    { icon:'💳', label:'Cakto', val: state.cakto.includes('SEU-LINK')?'Não configurado':state.cakto.split('/').pop(), ok:!state.cakto.includes('SEU-LINK') },
+    { icon:'📱', label:'WhatsApp', val: '+'+state.wa, ok:!!state.wa },
+    { icon:'🔐', label:'Senha admin', val: '••••••••', ok:!!state.pass },
+  ];
+  document.getElementById('summary').innerHTML = items.map(i=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+      <span>${i.icon}</span>
+      <span style="color:var(--muted);min-width:110px">${i.label}:</span>
+      <span style="font-family:var(--M);color:var(--ink2);flex:1">${i.val}</span>
+      <span>${i.ok?'<span class="tag tag-green">✓</span>':'<span class="tag" style="background:var(--rbg);color:var(--red);border:1px solid var(--rbd)">—</span>'}</span>
+    </div>
+  `).join('');
+}
+
+/* ── SELECT FILE ── */
+function selectFile(f) {
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('ft-'+f).classList.add('active');
+}
+
+/* ── GENERATE FILES ── */
+function generateFiles() {
+  // Collect final values
+  state.sburl  = document.getElementById('f-sburl').value.trim();
+  state.sbanon = document.getElementById('f-sbanon').value.trim();
+  state.admin  = document.getElementById('f-admin').value.trim();
+  state.apikey = document.getElementById('f-apikey').value.trim();
+  state.cakto  = document.getElementById('f-cakto').value.trim() || 'https://pay.cakto.com.br/SEU-LINK';
+  state.wa     = document.getElementById('f-wa').value.trim().replace(/\D/g,'');
+  state.pass   = document.getElementById('f-pass1').value;
+
+  if (!state.sburl || !state.sbanon || !state.admin || !state.apikey || !state.wa) {
+    showToast('⚠️ Preencha todos os campos obrigatórios antes de gerar.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-gen');
+  btn.innerHTML = '<span class="spinner"></span> Gerando arquivos…';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    buildMainFile();
+    buildAdminFile();
+    state.mainGenerated = true;
+    state.adminGenerated = true;
+
+    btn.innerHTML = '✅ Arquivos gerados com sucesso!';
+    btn.style.background = 'var(--green)';
+
+    document.getElementById('btn-dl-main').style.display = 'inline-flex';
+    document.getElementById('btn-dl-admin').style.display = 'inline-flex';
+
+    document.getElementById('gen-area').innerHTML = `
+      <div style="text-align:center">
+        <div style="font-size:32px;margin-bottom:8px">🎉</div>
+        <div style="font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:4px">Arquivos gerados!</div>
+        <div style="font-size:12px;color:var(--muted)">Baixe os 2 arquivos abaixo e siga os passos de deploy.</div>
+      </div>
+    `;
+    markDone(6);
+    showToast('✅ plania.html e plania-admin.html prontos para baixar!');
+    updateSummary();
+  }, 800);
+}
+
+/* ── BUILD plania.html ── */
+function buildMainFile() {
+  // Template is embedded here — we replace the config lines
+  const template = getMainTemplate();
+  state.mainContent = template
+    .replace(/const API_KEY\s*=\s*["'][^"']*["'];/, `const API_KEY        = "${state.apikey}";`)
+    .replace(/const SB_URL\s*=\s*["'][^"']*["'];/, `const SB_URL         = "${state.sburl}";`)
+    .replace(/const SB_ANON\s*=\s*["'][^"']*["'];/, `const SB_ANON        = "${state.sbanon}";`)
+    .replace(/const CAKTO_LINK\s*=\s*["'][^"']*["'];/, `const CAKTO_LINK     = "${state.cakto}";`)
+    .replace(/const WHATSAPP_NUM\s*=\s*["'][^"']*["'];/, `const WHATSAPP_NUM   = "${state.wa}";`);
+}
+
+/* ── BUILD plania-admin.html ── */
+function buildAdminFile() {
+  const template = getAdminTemplate();
+  state.adminContent = template
+    .replace(/const SB_URL\s*=\s*["'][^"']*["'];/, `const SB_URL      = "${state.sburl}";`)
+    .replace(/const SB_ANON\s*=\s*["'][^"']*["'];/, `const SB_ANON     = "${state.sbanon}";`)
+    .replace(/const ADMIN_EMAIL\s*=\s*["'][^"']*["'];/, `const ADMIN_EMAIL = "${state.admin}";`);
+}
+
+/* ── DOWNLOAD ── */
+function downloadMain() {
+  if (!state.mainContent) { showToast('⚠️ Gere os arquivos primeiro.'); return }
+  dl('plania.html', state.mainContent);
+}
+
+function downloadAdmin() {
+  if (!state.adminContent) { showToast('⚠️ Gere os arquivos primeiro.'); return }
+  dl('plania-admin.html', state.adminContent);
+}
+
+function dl(name, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type:'text/html;charset=utf-8'}));
+  a.download = name; a.click();
+  showToast(`↓ Baixando ${name}…`);
+}
+
+/* ── COPY SQL ── */
+function copySQL() {
+  const sql = document.getElementById('sql-code').textContent;
+  navigator.clipboard.writeText(sql).then(() => showToast('📋 SQL copiado! Cole no SQL Editor do Supabase.'));
+}
+
+/* ── TOAST ── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none' }, 3500);
+}
+
+/* ── TEMPLATES ── */
+// These load the actual file contents from sessionStorage if available,
+// or use placeholder templates that the user downloads and edits.
+function getMainTemplate() {
+  return sessionStorage.getItem('plania_main') || MAIN_PLACEHOLDER;
+}
+function getAdminTemplate() {
+  return sessionStorage.getItem('plania_admin') || ADMIN_PLACEHOLDER;
+}
+
+// Minimal placeholder if files aren't pre-loaded
+const MAIN_PLACEHOLDER = `<!-- plania.html — Configure as linhas abaixo -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"/><title>PlanIA</title></head>
+<body>
+<script>
+/* CONFIG */
+const API_KEY        = "CONFIGURAR";
+const SB_URL         = "CONFIGURAR";
+const SB_ANON        = "CONFIGURAR";
+const CAKTO_LINK     = "CONFIGURAR";
+const WHATSAPP_NUM   = "CONFIGURAR";
+/* Baixe o arquivo plania.html completo do Claude e use este configurador */
+<\/script>
+</body>
+</html>`;
+
+const ADMIN_PLACEHOLDER = `<!-- plania-admin.html — Configure as linhas abaixo -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"/><title>PlanIA Admin</title></head>
+<body>
+<script>
+const SB_URL      = "CONFIGURAR";
+const SB_ANON     = "CONFIGURAR";
+const ADMIN_EMAIL = "CONFIGURAR";
+/* Baixe o arquivo plania-admin.html completo do Claude e use este configurador */
+<\/script>
+</body>
+</html>`;
+
+/* ── LOAD FILE CONTENTS ── */
+// Instructions for user to load their actual files
+window.addEventListener('load', () => {
+  // Check if running with actual files
+  const hasMain  = sessionStorage.getItem('plania_main');
+  const hasAdmin = sessionStorage.getItem('plania_admin');
+  if (!hasMain || !hasAdmin) {
+    injectFileLoader();
+  }
+});
+
+function injectFileLoader() {
+  const notice = document.createElement('div');
+  notice.style.cssText = 'background:var(--bbg);border:1px solid var(--bbd);border-radius:12px;padding:16px;margin-bottom:16px;font-size:12px;color:var(--blue)';
+  notice.innerHTML = `
+    <div style="font-weight:700;margin-bottom:8px">📂 Carregar seus arquivos PlanIA</div>
+    <div style="color:var(--muted);margin-bottom:10px">Para que o configurador insira suas chaves corretamente nos arquivos completos, carregue os arquivos baixados do Claude:</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="background:var(--ink);color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px">
+        📄 Carregar plania.html
+        <input type="file" accept=".html" onchange="loadFile(event,'main')" style="display:none"/>
+      </label>
+      <label style="background:var(--ink);color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px">
+        🔐 Carregar plania-admin.html
+        <input type="file" accept=".html" onchange="loadFile(event,'admin')" style="display:none"/>
+      </label>
+    </div>
+    <div id="file-status" style="margin-top:8px;font-size:11px;color:var(--muted)">Aguardando os arquivos…</div>
+  `;
+  const page = document.querySelector('.page');
+  const firstSection = document.getElementById('sec-1');
+  page.insertBefore(notice, firstSection);
+}
+
+function loadFile(event, type) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    sessionStorage.setItem('plania_'+type, e.target.result);
+    const status = document.getElementById('file-status');
+    const mainOk  = sessionStorage.getItem('plania_main');
+    const adminOk = sessionStorage.getItem('plania_admin');
+    if (mainOk && adminOk) {
+      status.innerHTML = '✅ Ambos os arquivos carregados! Agora preencha as configurações abaixo.';
+      status.style.color = 'var(--green)';
+    } else {
+      const faltando = mainOk ? 'plania-admin.html' : 'plania.html';
+      status.innerHTML = `✅ ${file.name} carregado! Falta: ${faltando}`;
+      status.style.color = 'var(--amber)';
+    }
+    showToast('✅ '+file.name+' carregado!');
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>
